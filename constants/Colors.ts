@@ -7,6 +7,7 @@ const tintColorDark = '#4E71FF';
 
 export const Color = {
   dark: {
+    danger: '#dc2626',
     text: '#ECEDEE',
     background: '#131416',
     tint: tintColorDark,
