@@ -1,6 +1,7 @@
 import React from 'react';
 import { Alert, StyleSheet, TouchableOpacity } from 'react-native';
 
+// Custom components and utilities
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -9,6 +10,7 @@ import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function TabTwoScreen() {
+  // Handle complete data deletion with confirmation
   const handleDeleteAllData = async () => {
     Alert.alert(
       'Delete All Data',
@@ -34,12 +36,12 @@ export default function TabTwoScreen() {
   return (
     <ParallaxScrollView>
       <ThemedView style={styles.container}>
-        {/* Profile Section */}
+        {/* Profile Header */}
         <ThemedView style={styles.section}>
           <ThemedText type="title" style={styles.sectionTitle}>Profile</ThemedText>
         </ThemedView>
 
-        {/* Info Section */}
+        {/* App Information */}
         <ThemedView style={styles.section}>
           <ThemedView style={styles.infoItem}>
             <ThemedText type="defaultSemiBold">Version: </ThemedText>
@@ -51,7 +53,7 @@ export default function TabTwoScreen() {
           </ThemedView>
         </ThemedView>
 
-        {/* Danger Zone */}
+        {/* Data Management */}
         <ThemedView style={styles.section}>
           <TouchableOpacity
             style={styles.dangerButton}
@@ -66,6 +68,7 @@ export default function TabTwoScreen() {
   );
 }
 
+// Styling for dark theme consistency
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -76,10 +79,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     textAlign: 'center',
-  },
-  dangerSectionTitle: {
-    marginBottom: 15,
-    color: Color.dark.danger,
+    marginBottom: 20,
   },
   infoItem: {
     flexDirection: 'row',
@@ -88,7 +88,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   dangerButton: {
-    marginTop: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

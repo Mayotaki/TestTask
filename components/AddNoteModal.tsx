@@ -15,32 +15,28 @@ interface AddNoteModalProps {
 
 const TITLE_MAX_LENGTH = 80;
 
+// Modal component for creating/editing notes
 export const AddNoteModal = ({ visible, onClose, onSave, editNote }: AddNoteModalProps) => {
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+  const [title, setTitle] = useState(''); // Note title state
+  const [content, setContent] = useState(''); // Note content state
 
+  // Reset form or populate for editing
   useEffect(() => {
     if (visible) {
-      if (editNote) {
-        setTitle(editNote.title);
-        setContent(editNote.content);
-      }
+      editNote ? setTitle(editNote.title) : setTitle('');
+      editNote ? setContent(editNote.content) : setContent('');
     } else {
-      setTitle('');
+      setTitle(''); 
       setContent('');
     }
   }, [visible, editNote]);
 
+  // Validate and save note
   const handleSave = () => {
     const trimmedTitle = title.trim();
-    if (!trimmedTitle) {
-      Alert.alert('Error', 'Please enter a note title');
-      return;
-    }
-    if (trimmedTitle.length > TITLE_MAX_LENGTH) {
-      Alert.alert('Error', `Title must be less than ${TITLE_MAX_LENGTH} characters`);
-      return;
-    }
+    if (!trimmedTitle) return Alert.alert('Error', 'Title required');
+    if (trimmedTitle.length > TITLE_MAX_LENGTH) return Alert.alert('Error', `Max ${TITLE_MAX_LENGTH} chars`);
+    
     onSave(trimmedTitle, content.trim());
     onClose();
   };
@@ -48,12 +44,16 @@ export const AddNoteModal = ({ visible, onClose, onSave, editNote }: AddNoteModa
   return (
     <Modal
       visible={visible}
-      transparent={true}
+      transparent
       animationType="fade"
       onRequestClose={onClose}
     >
+      {/* Overlay */}
       <View style={styles.modalOverlay}>
+        {/* Main content container */}
         <ThemedView style={styles.modalContent}>
+          
+          {/* Header with dynamic title */}
           <View style={styles.modalHeader}>
             <ThemedText type="title">
               {editNote ? 'Edit Note' : 'New Note'}
@@ -63,6 +63,7 @@ export const AddNoteModal = ({ visible, onClose, onSave, editNote }: AddNoteModa
             </TouchableOpacity>
           </View>
 
+          {/* Title input with character counter */}
           <View>
             <TextInput
               style={styles.input}
@@ -78,6 +79,7 @@ export const AddNoteModal = ({ visible, onClose, onSave, editNote }: AddNoteModa
             </ThemedText>
           </View>
 
+          {/* Multiline content input */}
           <TextInput
             style={[styles.input, styles.multilineInput]}
             placeholder="Description"
@@ -88,6 +90,7 @@ export const AddNoteModal = ({ visible, onClose, onSave, editNote }: AddNoteModa
             numberOfLines={4}
           />
 
+          {/* Action buttons */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity
               style={[styles.button, styles.cancelButton]}

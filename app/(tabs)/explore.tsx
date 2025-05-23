@@ -18,7 +18,10 @@ interface Note {
   category: string;
 }
 
+// AsyncStorage key for persistent storage
 const STORAGE_KEY = 'USER_NOTES';
+
+// Available task categories
 const CATEGORIES = [
   { id: '1', title: 'In Progress' },
   { id: '2', title: 'Completed' },
@@ -26,13 +29,14 @@ const CATEGORIES = [
 ];
 
 export default function TabThreeScreen() {
-  const [showSortOptions, setShowSortOptions] = useState(false);
-  const [editingNote, setEditingNote] = useState<Note | null>(null);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('1');
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'a-z' | 'z-a'>('newest');
+  const [showSortOptions, setShowSortOptions] = useState(false);  // Sort menu visibility
+  const [editingNote, setEditingNote] = useState<Note | null>(null);  // Note being edited
+  const [isModalVisible, setIsModalVisible] = useState(false);  // Add/edit modal visibility
+  const [selectedCategory, setSelectedCategory] = useState('1');  // Active category filter
+  const [notes, setNotes] = useState<Note[]>([]);  // All stored notes
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'a-z' | 'z-a'>('newest');  // Sort method
 
+  // Available sorting options configuration
   const sortOptions = [
     { id: 'newest', label: 'Newest' },
     { id: 'oldest', label: 'Oldest' },
@@ -40,20 +44,21 @@ export default function TabThreeScreen() {
     { id: 'z-a', label: 'Z-A' },
   ];
 
+  // Sort notes by selected criteria
   const getSortedNotes = (notes: Note[]) => {
-  return [...notes].sort((a, b) => {
-    const dateA = new Date(a.date).getTime();
-    const dateB = new Date(b.date).getTime();
-    
-    switch(sortBy) {
-      case 'newest': return dateB - dateA;
-      case 'oldest': return dateA - dateB;
-      case 'a-z': return a.title.localeCompare(b.title);
-      case 'z-a': return b.title.localeCompare(a.title);
-      default: return 0;
-    }
-  });
-};
+    return [...notes].sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      
+      switch(sortBy) {
+        case 'newest': return dateB - dateA;  // Descending date order
+        case 'oldest': return dateA - dateB;  // Ascending date order
+        case 'a-z': return a.title.localeCompare(b.title);  // Alphabetical
+        case 'z-a': return b.title.localeCompare(a.title);  // Reverse alphabetical
+        default: return 0;
+      }
+    });
+  };
 
   // Load data
   const loadNotes = async () => {
@@ -126,16 +131,22 @@ export default function TabThreeScreen() {
 
   // Move note between categories
   const updateNoteCategory = (noteId: string, newCategory: string) => {
-    const updatedNotes = notes.map(note => 
-      note.id === noteId ? { ...note, category: newCategory } : note
-    );
-    saveNotes(updatedNotes);
-  };
-
+  const updatedNotes = notes.map(note => 
+    note.id === noteId ? { 
+      ...note, 
+      category: newCategory, // Используем переданный newCategory
+      date: new Date().toISOString() // Обновляем дату изменения
+    } : note
+  );
+  saveNotes(updatedNotes);
+};
+  
+  // Filtered and sorted notes for display
   const filteredNotes = getSortedNotes(
     notes.filter(note => note.category === selectedCategory)
   );
 
+  // Header component with controls
   const renderHeader = () => (
     <View style={styles.header}>
       <View style={styles.headerTitleContainer}>
@@ -159,28 +170,31 @@ export default function TabThreeScreen() {
   return (
     <ParallaxScrollView>
       <ThemedView style={styles.container}>
+        {/* Render header with controls */}
         {renderHeader()}
 
+        {/* Sorting dropdown menu */}
         {showSortOptions && (
-            <ThemedView style={styles.sortDropdown}>
-                {sortOptions.map(option => (
-                <TouchableOpacity
-                    key={option.id}
-                    style={styles.sortItem}
-                    onPress={() => {
-                    setSortBy(option.id as typeof sortBy);
-                    setShowSortOptions(false);
-                    }}
-                >
-                    <ThemedText>{option.label}</ThemedText>
-                    {sortBy === option.id && (
-                    <MaterialIcons name="check" size={18} color={Color.dark.tint} />
-                    )}
-                </TouchableOpacity>
-                ))}
-            </ThemedView>
+          <ThemedView style={styles.sortDropdown}>
+            {sortOptions.map(option => (
+              <TouchableOpacity
+                key={option.id}
+                style={styles.sortItem}
+                onPress={() => {
+                  setSortBy(option.id as typeof sortBy);
+                  setShowSortOptions(false);
+                }}
+              >
+                <ThemedText>{option.label}</ThemedText>
+                {sortBy === option.id && (
+                  <MaterialIcons name="check" size={18} color={Color.dark.tint} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </ThemedView>
         )}
 
+        {/* Add/edit note modal */}
         <AddNoteModal
           visible={isModalVisible}
           onClose={() => {
@@ -191,7 +205,7 @@ export default function TabThreeScreen() {
           editNote={editingNote ? { title: editingNote.title, content: editingNote.content } : undefined}
         />
 
-        {/* Category tabs */}
+        {/* Category filter tabs */}
         <View style={styles.categoriesContainer}>
           {CATEGORIES.map(item => (
             <TouchableOpacity
@@ -214,22 +228,22 @@ export default function TabThreeScreen() {
           ))}
         </View>
 
-        {/* Notes list */}
+        {/* Conditional notes rendering */}
         {filteredNotes.length === 0 ? (
           <ThemedText style={styles.empty}>No tasks found</ThemedText>
         ) : (
           filteredNotes.map(note => (
             <Collapsible
-                key={note.id}
-                title={note.title}
-                onEdit={() => {
-                    setEditingNote(note);
-                    setIsModalVisible(true);
-                }}
-                onDelete={() => handleDeleteNote(note.id)}
-                onMoveToInProgress={() => updateNoteCategory(note.id, '1')}
-                onComplete={() => updateNoteCategory(note.id, '2')}
-                onCancel={() => updateNoteCategory(note.id, '3')}
+              key={note.id}
+              title={note.title}
+              onEdit={() => {
+                setEditingNote(note);
+                setIsModalVisible(true);
+              }}
+              onDelete={() => handleDeleteNote(note.id)}
+              onMoveToInProgress={() => updateNoteCategory(note.id, '1')} // In Progress
+              onComplete={() => updateNoteCategory(note.id, '2')}         // Completed
+              onCancel={() => updateNoteCategory(note.id, '3')}
             >
               <ThemedText>{note.content}</ThemedText>
               <ThemedText type="secondary" style={styles.noteDate}>
@@ -255,6 +269,8 @@ const CATEGORY_BUTTON_WIDTH = width / 3 - 30;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    position: 'relative',
+    zIndex: 2,
   },
   header: {
     flexDirection: 'row',

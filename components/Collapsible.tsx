@@ -122,6 +122,7 @@ const styles = StyleSheet.create({
     borderBottomColor: Color.dark.border,
     marginBottom: 12,
     paddingBottom: 8,
+    zIndex: 1,
   },
   header: {
     flexDirection: 'row',
@@ -142,12 +143,12 @@ const styles = StyleSheet.create({
   menu: {
     position: 'absolute',
     right: 0,
-    top: 35,
+    top: 45, // Увеличьте отступ сверху
     backgroundColor: Color.dark.background,
     borderRadius: 8,
     padding: 12,
-    zIndex: 1,
-    elevation: 3,
+    zIndex: 1000, // Увеличьте z-index
+    elevation: 20, // Для Android
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -157,7 +158,10 @@ const styles = StyleSheet.create({
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12, // Добавляем горизонтальный отступ
+    minHeight: 40, // Минимальная высота для клика
+    zIndex: 1001,
   },
   menuText: {
     marginLeft: 8,
