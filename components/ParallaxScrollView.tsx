@@ -1,64 +1,46 @@
-import type { PropsWithChildren, ReactElement } from 'react';
+import type { PropsWithChildren } from 'react';
 import { StyleSheet } from 'react-native';
-import Animated, {
-  interpolate,
-  useAnimatedRef,
-  useAnimatedStyle,
-  useScrollViewOffset,
-} from 'react-native-reanimated';
 
 import { ThemedView } from '@/components/ThemedView';
 import { useBottomTabOverflow } from '@/components/ui/TabBarBackground';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import Animated, {
+  useAnimatedRef,
+  useScrollViewOffset
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const HEADER_HEIGHT = 250;
-
-type Props = PropsWithChildren<{
-  headerImage: ReactElement;
-  headerBackgroundColor: { dark: string; light: string };
-}>;
+type Props = PropsWithChildren;
 
 export default function ParallaxScrollView({
   children,
-  headerImage,
-  headerBackgroundColor,
 }: Props) {
-  const colorScheme = useColorScheme() ?? 'light';
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const scrollOffset = useScrollViewOffset(scrollRef);
   const bottom = useBottomTabOverflow();
-  const headerAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [
-        {
-          translateY: interpolate(
-            scrollOffset.value,
-            [-HEADER_HEIGHT, 0, HEADER_HEIGHT],
-            [-HEADER_HEIGHT / 2, 0, HEADER_HEIGHT * 0.75]
-          ),
-        },
-        {
-          scale: interpolate(scrollOffset.value, [-HEADER_HEIGHT, 0, HEADER_HEIGHT], [2, 1, 1]),
-        },
-      ],
-    };
-  });
+  const insets = useSafeAreaInsets();
+  const headerHeight = insets.top;
 
   return (
     <ThemedView style={styles.container}>
+      {/* Заголовок, закрывающий ТОЛЬКО безопасную зону */}
+      <Animated.View
+        style={[
+          styles.header,
+          { height: headerHeight },
+          styles.fixedHeader,
+        ]}
+      />
+      
+      {/* Контент с отступом под безопасную зону */}
       <Animated.ScrollView
         ref={scrollRef}
         scrollEventThrottle={16}
         scrollIndicatorInsets={{ bottom }}
-        contentContainerStyle={{ paddingBottom: bottom }}>
-        <Animated.View
-          style={[
-            styles.header,
-            { backgroundColor: headerBackgroundColor[colorScheme] },
-            headerAnimatedStyle,
-          ]}>
-          {headerImage}
-        </Animated.View>
+        contentContainerStyle={{ 
+          paddingBottom: bottom,
+          paddingTop: headerHeight, // Компенсация высоты безопасной зоны
+        }}
+      >
         <ThemedView style={styles.content}>{children}</ThemedView>
       </Animated.ScrollView>
     </ThemedView>
@@ -68,15 +50,21 @@ export default function ParallaxScrollView({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    position: 'relative',
   },
   header: {
-    height: HEADER_HEIGHT,
-    overflow: 'hidden',
+    width: '100%',
+  },
+  fixedHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
   content: {
     flex: 1,
-    padding: 32,
+    padding: 16,
     gap: 16,
-    overflow: 'hidden',
   },
 });
