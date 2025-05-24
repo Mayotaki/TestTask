@@ -1,5 +1,12 @@
-import { useState } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useRef, useState } from 'react';
+import {
+  Dimensions,
+  Modal,
+  StyleSheet,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View
+} from 'react-native';
 
 import { Color } from '@/constants/Colors';
 import { Feather } from '@expo/vector-icons';
@@ -14,7 +21,9 @@ export function Collapsible({
   onDelete,
   onMoveToInProgress,
   onComplete,
-  onCancel
+  onCancel,
+  isMenuOpen,
+  onMenuToggle,
 }: {
   children: React.ReactNode;
   title: string;
@@ -23,13 +32,33 @@ export function Collapsible({
   onMoveToInProgress?: () => void;
   onComplete?: () => void;
   onCancel?: () => void;
+  isMenuOpen?: boolean;
+  onMenuToggle?: (state: boolean) => void;
 }) {
+  const showMenu = isMenuOpen ?? false; 
   const [isOpen, setIsOpen] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
+  const buttonRef = useRef<TouchableOpacity>(null);
+
+  const handleMenuToggle = () => {
+    buttonRef.current?.measure((_x, _y, width, height, pageX, pageY) => {
+      setMenuPosition({
+        top: pageY + height + 8,
+        right: Dimensions.get('window').width - pageX - width + 8,
+      });
+    });
+    onMenuToggle?.(!showMenu);
+  };
+
+  const handleMenuAction = (action?: () => void) => {
+    onMenuToggle?.(false);
+    action?.();
+  };
 
   return (
     <ThemedView style={styles.container}>
       <View style={styles.header}>
+        {/* Header title button */}
         <TouchableOpacity
           style={styles.titleContainer}
           onPress={() => setIsOpen(!isOpen)}
@@ -44,85 +73,78 @@ export function Collapsible({
           <ThemedText type="defaultSemiBold">{title}</ThemedText>
         </TouchableOpacity>
 
+        {/* Menu toggle button */}
         <TouchableOpacity 
-          onPress={() => setShowMenu(!showMenu)}
+          ref={buttonRef as React.RefObject<View>}
+          onPress={handleMenuToggle}
           style={styles.menuButton}
         >
           <Feather name="more-vertical" size={20} color={Color.dark.icon} />
         </TouchableOpacity>
 
-        {showMenu && (
-          <ThemedView style={styles.menu}>
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                setShowMenu(false);
-                onEdit?.();
-              }}
-            >
-              <Feather name="edit" size={16} color={Color.dark.text} />
-              <ThemedText style={styles.menuText}>Edit</ThemedText>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                setShowMenu(false);
-                onDelete?.();
-              }}
-            >
-              <Feather name="trash-2" size={16} color={Color.dark.text} />
-              <ThemedText style={styles.menuText}>Delete</ThemedText>
-            </TouchableOpacity>
+        {/* Context menu modal */}
+        <Modal
+          visible={showMenu}
+          transparent
+          animationType="fade"
+          onRequestClose={handleMenuToggle}
+        >
+          <View style={styles.modalBackdrop}>
+            <TouchableWithoutFeedback onPress={handleMenuToggle}>
+              <View style={StyleSheet.absoluteFill} />
+            </TouchableWithoutFeedback>
 
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                setShowMenu(false);
-                onMoveToInProgress?.();
-              }}
+            <ThemedView 
+              style={[
+                styles.menu,
+                { 
+                  top: menuPosition.top,
+                  right: menuPosition.right,
+                }
+              ]}
             >
-              <Feather name="clock" size={16} color={Color.dark.text} />
-              <ThemedText style={styles.menuText}>In Progress</ThemedText>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                setShowMenu(false);
-                onComplete?.();
-              }}
-            >
-              <Feather name="check-circle" size={16} color={Color.dark.text} />
-              <ThemedText style={styles.menuText}>Complete</ThemedText>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                setShowMenu(false);
-                onCancel?.();
-              }}
-            >
-              <Feather name="x-circle" size={16} color={Color.dark.text} />
-              <ThemedText style={styles.menuText}>Cancel</ThemedText>
-            </TouchableOpacity>
-          </ThemedView>
-        )}
+              {[
+                { id: 1, label: 'Edit', icon: 'edit' as const, action: onEdit },
+                { id: 2, label: 'Delete', icon: 'trash-2' as const, action: onDelete },
+                { id: 3, label: 'In Progress', icon: 'clock' as const, action: onMoveToInProgress },
+                { id: 4, label: 'Complete', icon: 'check-circle' as const, action: onComplete },
+                { id: 5, label: 'Cancel', icon: 'x-circle' as const, action: onCancel },
+              ].map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.menuItem}
+                  onPress={() => {
+                    onMenuToggle?.(false);
+                    item.action?.();
+                  }}
+                >
+                  <Feather name={item.icon} size={16} color={Color.dark.text} />
+                  <ThemedText style={styles.menuText}>{item.label}</ThemedText>
+                </TouchableOpacity>
+              ))}
+            </ThemedView>
+          </View>
+        </Modal>
       </View>
 
+      {/* Collapsible content area */}
       {isOpen && <ThemedView style={styles.content}>{children}</ThemedView>}
     </ThemedView>
   );
 }
 
+
 const styles = StyleSheet.create({
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    position: 'relative',
+  },
   container: {
     borderBottomWidth: 1,
     borderBottomColor: Color.dark.border,
     marginBottom: 12,
     paddingBottom: 8,
-    zIndex: 1,
   },
   header: {
     flexDirection: 'row',
@@ -140,28 +162,29 @@ const styles = StyleSheet.create({
   menuButton: {
     padding: 8,
   },
+  fullScreenOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 998,
+  },
   menu: {
     position: 'absolute',
-    right: 0,
-    top: 45, // Увеличьте отступ сверху
     backgroundColor: Color.dark.background,
     borderRadius: 8,
     padding: 12,
-    zIndex: 1000, // Увеличьте z-index
-    elevation: 20, // Для Android
+    minWidth: 160,
+    elevation: 100,
+    zIndex: 10000, 
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    minWidth: 160,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
-    paddingHorizontal: 12, // Добавляем горизонтальный отступ
-    minHeight: 40, // Минимальная высота для клика
-    zIndex: 1001,
+    paddingHorizontal: 12,
+    minHeight: 40,
   },
   menuText: {
     marginLeft: 8,

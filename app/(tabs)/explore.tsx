@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Alert, Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { AddNoteModal } from '@/components/AddNoteModal';
@@ -29,12 +29,14 @@ const CATEGORIES = [
 ];
 
 export default function TabThreeScreen() {
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null); 
   const [showSortOptions, setShowSortOptions] = useState(false);  // Sort menu visibility
   const [editingNote, setEditingNote] = useState<Note | null>(null);  // Note being edited
   const [isModalVisible, setIsModalVisible] = useState(false);  // Add/edit modal visibility
   const [selectedCategory, setSelectedCategory] = useState('1');  // Active category filter
   const [notes, setNotes] = useState<Note[]>([]);  // All stored notes
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'a-z' | 'z-a'>('newest');  // Sort method
+
 
   // Available sorting options configuration
   const sortOptions = [
@@ -61,22 +63,25 @@ export default function TabThreeScreen() {
   };
 
   // Load data
-  const loadNotes = async () => {
+  const loadNotes = useCallback(async () => {
     try {
-        const storedData = await AsyncStorage.getItem(STORAGE_KEY);
-        if (storedData) {
+      const storedData = await AsyncStorage.getItem(STORAGE_KEY);
+      if (storedData) {
         const parsedNotes = JSON.parse(storedData);
-        // Миграция для старых записей без времени
         const migratedNotes = parsedNotes.map((note: Note) => ({
-            ...note,
-            date: note.date.includes(',') ? note.date : `${note.date}, 00:00`
+          ...note,
+          date: note.date.includes('T') ? note.date : `${note.date}T00:00:00Z`
         }));
         setNotes(migratedNotes);
-        }
+      }
     } catch (error) {
-        Alert.alert('Error', 'Failed to load notes');
+      Alert.alert('Error', 'Failed to load notes');
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadNotes();
+  }, [loadNotes]);
 
   // Save data
   const saveNotes = async (newNotes: Note[]) => {
@@ -114,6 +119,7 @@ export default function TabThreeScreen() {
             category: selectedCategory,
             };
             saveNotes([...notes, newNote]);
+            setSelectedCategory('1');
         }
     };
 
@@ -131,6 +137,7 @@ export default function TabThreeScreen() {
 
   // Move note between categories
   const updateNoteCategory = (noteId: string, newCategory: string) => {
+  if (notes.find(n => n.id === noteId)?.category === newCategory) return; 
   const updatedNotes = notes.map(note => 
     note.id === noteId ? { 
       ...note, 
@@ -168,7 +175,10 @@ export default function TabThreeScreen() {
   );
 
   return (
-    <ParallaxScrollView>
+    <ParallaxScrollView
+    renderHeader={renderHeader}
+    contentContainerStyle={{ overflow: 'visible', zIndex: 1}}
+    >
       <ThemedView style={styles.container}>
         {/* Render header with controls */}
         {renderHeader()}
@@ -178,7 +188,7 @@ export default function TabThreeScreen() {
           <ThemedView style={styles.sortDropdown}>
             {sortOptions.map(option => (
               <TouchableOpacity
-                key={option.id}
+                key={`sort-${option.id}`}
                 style={styles.sortItem}
                 onPress={() => {
                   setSortBy(option.id as typeof sortBy);
@@ -236,14 +246,29 @@ export default function TabThreeScreen() {
             <Collapsible
               key={note.id}
               title={note.title}
+              isMenuOpen={activeMenuId === note.id}
+              onMenuToggle={(state) => setActiveMenuId(state ? note.id : null)}
               onEdit={() => {
                 setEditingNote(note);
                 setIsModalVisible(true);
+                setActiveMenuId(null);
               }}
-              onDelete={() => handleDeleteNote(note.id)}
-              onMoveToInProgress={() => updateNoteCategory(note.id, '1')} // In Progress
-              onComplete={() => updateNoteCategory(note.id, '2')}         // Completed
-              onCancel={() => updateNoteCategory(note.id, '3')}
+              onDelete={() => {
+                handleDeleteNote(note.id);
+                setActiveMenuId(null);
+              }}
+              onMoveToInProgress={() => {
+                updateNoteCategory(note.id, '1');
+                setActiveMenuId(null);
+              }}
+              onComplete={() => {
+                updateNoteCategory(note.id, '2');
+                setActiveMenuId(null);
+              }}
+              onCancel={() => {
+                updateNoteCategory(note.id, '3');
+                setActiveMenuId(null);
+              }}
             >
               <ThemedText>{note.content}</ThemedText>
               <ThemedText type="secondary" style={styles.noteDate}>
@@ -270,7 +295,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     position: 'relative',
-    zIndex: 2,
+    overflow: 'visible',
+    zIndex: 1,
   },
   header: {
     flexDirection: 'row',
@@ -416,16 +442,16 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 60,
     right: 16,
-    zIndex: 100,
     backgroundColor: Color.dark.background,
     borderRadius: 8,
     padding: 12,
-    elevation: 3,
+    elevation: 49,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     minWidth: 150,
+    zIndex: 1000,
   },
   sortItem: {
     flexDirection: 'row',
