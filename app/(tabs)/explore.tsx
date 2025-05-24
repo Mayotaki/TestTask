@@ -119,7 +119,6 @@ export default function TabThreeScreen() {
             category: selectedCategory,
             };
             saveNotes([...notes, newNote]);
-            setSelectedCategory('1');
         }
     };
 
@@ -211,7 +210,10 @@ export default function TabThreeScreen() {
             setIsModalVisible(false);
             setEditingNote(null);
           }}
-          onSave={handleSaveNote}
+          onSave={(title, content) => {
+            handleSaveNote(title, content);
+            setIsModalVisible(false); 
+          }}
           editNote={editingNote ? { title: editingNote.title, content: editingNote.content } : undefined}
         />
 
